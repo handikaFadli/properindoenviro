@@ -122,73 +122,6 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-                            {{-- PIC --}}
-                            {{-- <div>
-
-                                <label for="pic_id"
-                                       class="block mb-1.5
-                                              text-sm font-medium
-                                              text-gray-700
-                                              dark:text-gray-300">
-
-                                    PIC
-                                    <span class="text-red-500">*</span>
-
-                                </label>
-
-                                <select name="pic_id"
-                                        id="pic_id"
-                                        class="block w-full
-                                               px-3 py-2.5
-                                               text-sm
-                                               text-gray-900
-                                               bg-gray-50
-                                               border
-                                               border-gray-300
-                                               rounded-xl
-                                               focus:ring-2
-                                               focus:ring-blue-500
-                                               focus:border-blue-500
-                                               dark:bg-gray-700
-                                               dark:border-gray-600
-                                               dark:text-white
-                                               transition
-                                               @error('pic_id') border-red-500 @enderror">
-
-                                    <option value="">
-                                        Pilih PIC
-                                    </option>
-
-                                    @foreach($employees as $employee)
-
-                                        <option value="{{ $employee->id }}"
-                                            @selected(
-                                                old(
-                                                    'pic_id',
-                                                    $task->pic_id
-                                                ) == $employee->id
-                                            )>
-
-                                            {{ $employee->employee_code }}
-                                            -
-                                            {{ $employee->name }}
-
-                                        </option>
-
-                                    @endforeach
-
-                                </select>
-
-                                @error('pic_id')
-
-                                    <p class="mt-1.5 text-xs text-red-500">
-                                        {{ $message }}
-                                    </p>
-
-                                @enderror
-
-                            </div> --}}
-
 
                             {{-- PRIORITY --}}
                             <div>
@@ -303,64 +236,6 @@
                                 @enderror
 
                             </div>
-
-
-                            {{-- STATUS --}}
-                            {{-- <div>
-
-                                <label class="block mb-1.5
-                                              text-sm font-medium
-                                              text-gray-700
-                                              dark:text-gray-300">
-
-                                    Status Saat Ini
-
-                                </label>
-
-                                @php
-                                    $statusColors = [
-                                        'gray' => 'bg-gray-100 text-gray-700',
-                                        'blue' => 'bg-blue-100 text-blue-700',
-                                        'green' => 'bg-green-100 text-green-700',
-                                        'yellow' => 'bg-yellow-100 text-yellow-700',
-                                        'orange' => 'bg-orange-100 text-orange-700',
-                                        'red' => 'bg-red-100 text-red-700',
-                                        'purple' => 'bg-purple-100 text-purple-700',
-                                    ];
-
-                                    $statusClass =
-                                        $statusColors[$task->status?->color]
-                                        ?? 'bg-gray-100 text-gray-700';
-                                @endphp
-
-                                <div class="flex items-center
-                                            w-full
-                                            min-h-11
-                                            px-3 py-2.5
-                                            bg-gray-50
-                                            border
-                                            border-gray-200
-                                            rounded-xl
-                                            dark:bg-gray-700
-                                            dark:border-gray-600">
-
-                                    <span class="inline-flex items-center
-                                                 px-2.5 py-1
-                                                 rounded-full
-                                                 text-xs font-medium
-                                                 {{ $statusClass }}">
-
-                                        {{ $task->status?->name ?? '-' }}
-
-                                    </span>
-
-                                </div>
-
-                                <p class="mt-1.5 text-xs text-gray-400">
-                                    Status diperbarui melalui menu Update Status.
-                                </p>
-
-                            </div> --}}
 
 
                             {{-- TITLE --}}

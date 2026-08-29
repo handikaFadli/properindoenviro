@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('ticket:sla-refresh')
     ->everyMinute();
+
+Schedule::command('tasks:send-deadline-reminders')->dailyAt('08:00');

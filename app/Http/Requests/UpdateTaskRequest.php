@@ -14,7 +14,7 @@ class UpdateTaskRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -36,12 +36,6 @@ class UpdateTaskRequest extends FormRequest
                 'string',
             ],
 
-            'pic_id' => [
-                'required',
-                'integer',
-                'exists:employees,id',
-            ],
-
             'deadline' => [
                 'required',
                 'date',
@@ -60,30 +54,6 @@ class UpdateTaskRequest extends FormRequest
         return [
 
             function ($validator) {
-
-                /*
-                |--------------------------------------------------------------------------
-                | Validasi PIC Aktif
-                |--------------------------------------------------------------------------
-                */
-
-                if ($this->filled('pic_id')) {
-
-                    $employeeExists = Employee::query()
-                        ->where('id', $this->pic_id)
-                        ->where('status', 'active')
-                        ->exists();
-
-                    if (!$employeeExists) {
-
-                        $validator
-                            ->errors()
-                            ->add(
-                                'pic_id',
-                                'PIC yang dipilih tidak aktif atau tidak tersedia.'
-                            );
-                    }
-                }
 
 
                 /*
@@ -122,12 +92,6 @@ class UpdateTaskRequest extends FormRequest
 
             'title.max' =>
             'Judul tugas maksimal 150 karakter.',
-
-            'pic_id.required' =>
-            'PIC wajib dipilih.',
-
-            'pic_id.exists' =>
-            'PIC yang dipilih tidak ditemukan.',
 
             'deadline.required' =>
             'Deadline wajib diisi.',

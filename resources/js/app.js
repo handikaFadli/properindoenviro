@@ -5,6 +5,7 @@ import "./bootstrap";
 import "./charts";
 import "./dark-mode";
 import "./sidebar";
+import "./notifications";
 
 window.showLoading = function () {
     const loading = document.getElementById("loading-screen");

@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\TaskPriority;
 use App\Models\TaskStatus;
 use App\Models\TaskStatusHistory;
+use App\Notifications\TaskNotification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -377,10 +378,10 @@ class TaskController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            $query->where(fn ($query) => $query->where('task_code', 'like', "%{$search}%")
+            $query->where(fn($query) => $query->where('task_code', 'like', "%{$search}%")
                 ->orWhere('title', 'like', "%{$search}%")
                 ->orWhere('description', 'like', "%{$search}%")
-                ->orWhereHas('pic', fn ($query) => $query->where('name', 'like', "%{$search}%")->orWhere('employee_code', 'like', "%{$search}%")));
+                ->orWhereHas('pic', fn($query) => $query->where('name', 'like', "%{$search}%")->orWhere('employee_code', 'like', "%{$search}%")));
         }
 
         foreach (['pic_id', 'task_status_id', 'task_priority_id'] as $filter) {
@@ -398,7 +399,7 @@ class TaskController extends Controller
         }
 
         $tasks = $query->orderBy('deadline')->orderByDesc('created_at')->get();
-        $filename = 'laporan-tugas-'.now()->format('Y-m-d');
+        $filename = 'laporan-tugas-' . now()->format('Y-m-d');
 
         return match ($format) {
             'xlsx' => Excel::download(new TaskExport($tasks), "{$filename}.xlsx"),
@@ -571,8 +572,8 @@ class TaskController extends Controller
                     'task_status_id' => $defaultStatus->id,
 
                     'note' => 'Tugas dibuat dengan status awal '
-                        .$defaultStatus->name
-                        .'.',
+                        . $defaultStatus->name
+                        . '.',
 
                     'changed_by' => Auth::id(),
                 ]);
@@ -580,6 +581,8 @@ class TaskController extends Controller
                 return $task;
             }
         );
+
+        $this->notifyTaskPic($task, 'Task Assigned', "Anda mendapatkan tugas baru: {$task->title}.");
 
         return redirect()
             ->route(
@@ -755,71 +758,89 @@ class TaskController extends Controller
         UpdateTaskRequest $request,
         Task $task
     ) {
-        $task->load('pic');
-
         $this->authorize(
             'update',
             $task
         );
 
-        $user = Auth::user();
-
         /*
     |--------------------------------------------------------------------------
-    | Validate PIC
+    | Data Lama
     |--------------------------------------------------------------------------
     */
 
-        $picQuery = Employee::query()
-            ->where(
-                'id',
-                $request->pic_id
-            )
-            ->where(
-                'status',
-                'active'
-            );
+        $oldDeadline = $task->deadline?->toDateString();
+        $oldPriorityId = $task->task_priority_id;
 
-        if ($user->isManagement()) {
 
-            $picQuery->where(
-                'department_id',
-                $user->employee->department_id
-            );
-        }
-
-        $pic = $picQuery->first();
-
-        if (! $pic) {
-
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'pic_id' => 'PIC tidak valid atau berada di luar departemen Anda.',
-                ]);
-        }
+        /*
+    |--------------------------------------------------------------------------
+    | Update Task
+    |--------------------------------------------------------------------------
+    */
 
         DB::transaction(
             function () use (
                 $request,
-                $task,
-                $pic
+                $task
             ) {
 
                 $task->update([
+                    'title' =>
+                    $request->title,
 
-                    'title' => $request->title,
+                    'description' =>
+                    $request->description,
 
-                    'description' => $request->description,
+                    /*
+                 * PIC tidak diubah dari form edit
+                 */
+                    'deadline' =>
+                    $request->deadline,
 
-                    'pic_id' => $pic->id,
-
-                    'deadline' => $request->deadline,
-
-                    'task_priority_id' => $request->task_priority_id,
+                    'task_priority_id' =>
+                    $request->task_priority_id,
                 ]);
             }
         );
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | Refresh Data
+    |--------------------------------------------------------------------------
+    */
+
+        $task->refresh();
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | Notification
+    |--------------------------------------------------------------------------
+    */
+
+        $deadlineChanged =
+            $oldDeadline !==
+            $task->deadline?->toDateString();
+
+        $priorityChanged =
+            (int) $oldPriorityId !==
+            (int) $task->task_priority_id;
+
+
+        if (
+            $deadlineChanged
+            || $priorityChanged
+        ) {
+
+            $this->notifyTaskPic(
+                $task,
+                'Task Updated',
+                "Informasi penting tugas {$task->task_code} telah diperbarui."
+            );
+        }
+
 
         return redirect()
             ->route(
@@ -884,15 +905,24 @@ class TaskController extends Controller
 
                 return null;
             })
-            ->filter(fn ($number) => $number !== null)
+            ->filter(fn($number) => $number !== null)
             ->max() ?? 0;
 
-        return 'TSK-'.str_pad(
+        return 'TSK-' . str_pad(
             (string) ($highestCode + 1),
             3,
             '0',
             STR_PAD_LEFT
         );
+    }
+
+    private function notifyTaskPic(Task $task, string $type, string $message, ?string $reminder = null): void
+    {
+        $task->loadMissing(['pic.user', 'priority']);
+
+        if ($task->pic?->user) {
+            $task->pic->user->notify(new TaskNotification($task, $type, $message, $reminder));
+        }
     }
 
     public function assignPic(
@@ -990,6 +1020,8 @@ class TaskController extends Controller
         $task->update([
             'pic_id' => $employee->id,
         ]);
+
+        $this->notifyTaskPic($task->fresh(), 'Task Updated', "PIC tugas {$task->task_code} telah diperbarui.");
 
         return redirect()
             ->route(
@@ -1121,6 +1153,10 @@ class TaskController extends Controller
 
                     'changed_by' => Auth::id(),
                 ]);
+
+                if ($newStatus->code === 'completed' && $task->creator) {
+                    $task->creator->notify(new TaskNotification($task, 'Task Completed', "Tugas {$task->task_code} telah diselesaikan oleh {$task->pic->name}."));
+                }
             }
         );
 
