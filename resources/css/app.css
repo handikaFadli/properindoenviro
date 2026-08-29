@@ -1,0 +1,217 @@
+@import "tailwindcss";
+
+@plugin "flowbite/plugin";
+@source "../../node_modules/flowbite";
+@source "../../node_modules/flowbite-datepicker";
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary-50: #eff6ff;
+    --color-primary-100: #dbeafe;
+    --color-primary-200: #bfdbfe;
+    --color-primary-300: #93c5fd;
+    --color-primary-400: #60a5fa;
+    --color-primary-500: #3b82f6;
+    --color-primary-600: #2563eb;
+    --color-primary-700: #1d4ed8;
+    --color-primary-800: #1e40af;
+    --color-primary-900: #1e3a8a;
+
+    --font-sans:
+        "Inter", "ui-sans-serif", "system-ui", "-apple-system", "system-ui",
+        "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans",
+        "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+    --font-body:
+        "Inter", "ui-sans-serif", "system-ui", "-apple-system", "system-ui",
+        "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans",
+        "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+    --font-mono:
+        "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas",
+        "Liberation Mono", "Courier New", "monospace";
+}
+
+/* From Uiverse.io by satyamchaudharydev */
+.loading {
+    --speed-of-animation: 0.7s;
+    --gap: 6px;
+    --first-color: #4c86f9;
+    --second-color: #49a84c;
+    --third-color: #f6bb02;
+    --fourth-color: #f6bb02;
+    --fifth-color: #2196f3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100px;
+    gap: 6px;
+    height: 100px;
+}
+
+.loading span {
+    width: 4px;
+    height: 50px;
+    background: var(--first-color);
+    animation: scale var(--speed-of-animation) ease-in-out infinite;
+}
+
+.loading span:nth-child(2) {
+    background: var(--second-color);
+    animation-delay: -0.8s;
+}
+
+.loading span:nth-child(3) {
+    background: var(--third-color);
+    animation-delay: -0.7s;
+}
+
+.loading span:nth-child(4) {
+    background: var(--fourth-color);
+    animation-delay: -0.6s;
+}
+
+.loading span:nth-child(5) {
+    background: var(--fifth-color);
+    animation-delay: -0.5s;
+}
+
+@keyframes scale {
+    0%,
+    40%,
+    100% {
+        transform: scaleY(0.05);
+    }
+
+    20% {
+        transform: scaleY(1);
+    }
+}
+
+#search-input:not(:placeholder-shown) {
+    font-weight: 500;
+}
+#search-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+/* Wrapper utama */
+.datatable-wrapper {
+    @apply w-full;
+}
+
+/* Container search + per page */
+.datatable-top {
+    @apply flex items-center justify-between gap-4 mx-0.5 mt-2 mb-4;
+}
+
+/* Search input */
+.datatable-search {
+    @apply flex-1;
+}
+
+.datatable-input {
+    @apply w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400;
+}
+
+/* Per page dropdown */
+.datatable-selector {
+    @apply px-3 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white;
+}
+
+.datatable-dropdown {
+    @apply flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400;
+}
+
+.datatable-table th {
+    @apply px-4 py-3 text-xs uppercase tracking-wider;
+    background-color: #e5e7eb !important; /* gray-200 */
+    color: #111827 !important; /* gray-900 */
+    font-weight: 700 !important;
+}
+
+/* Sort icon link di dalam th */
+.datatable-table th a {
+    @apply flex items-center gap-1;
+    color: #111827 !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+}
+
+/* ── Body rows ── */
+.datatable-table tbody tr {
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.datatable-table td {
+    @apply px-4 py-3 text-sm text-gray-800;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    background-color: #fefefe;
+}
+
+/* PAGINATION WRAPPER */
+.datatable-pagination {
+    @apply flex justify-end items-center gap-2 mt-4;
+}
+
+/* PAGINATION LIST */
+.datatable-pagination-list {
+    @apply flex items-center gap-2;
+}
+
+/* BUTTON */
+.datatable-pagination a,
+.datatable-pagination button {
+    @apply px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 transition;
+}
+
+/* HOVER */
+.datatable-pagination a:hover,
+.datatable-pagination button:hover {
+    @apply bg-blue-500 text-white border-blue-500;
+}
+
+/* ACTIVE */
+.datatable-active a,
+.datatable-active button {
+    @apply bg-blue-600 text-white border-blue-600;
+}
+
+/* DISABLED */
+.datatable-disabled a,
+.datatable-disabled button {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+/* Untuk Chrome, Safari, Edge */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Untuk Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+@keyframes toast-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+.animate-toast-in {
+    animation: toast-in 0.3s ease-out;
+}
