@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TaskExport;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Employee;
@@ -9,9 +10,12 @@ use App\Models\Task;
 use App\Models\TaskPriority;
 use App\Models\TaskStatus;
 use App\Models\TaskStatusHistory;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Excel as ExcelWriter;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TaskController extends Controller
 {
@@ -24,7 +28,6 @@ class TaskController extends Controller
 
         $user = Auth::user();
 
-
         /*
         |--------------------------------------------------------------------------
         | Base Query berdasarkan Role
@@ -33,7 +36,6 @@ class TaskController extends Controller
 
         $baseQuery = Task::query()
             ->visibleTo($user);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -49,7 +51,6 @@ class TaskController extends Controller
                 'priority',
                 'creator',
             ]);
-
 
         /*
     |--------------------------------------------------------------------------
@@ -107,7 +108,6 @@ class TaskController extends Controller
             );
         }
 
-
         /*
     |--------------------------------------------------------------------------
     | PIC
@@ -121,7 +121,6 @@ class TaskController extends Controller
                 $request->input('pic_id')
             );
         }
-
 
         /*
     |--------------------------------------------------------------------------
@@ -139,7 +138,6 @@ class TaskController extends Controller
             );
         }
 
-
         /*
     |--------------------------------------------------------------------------
     | Priority
@@ -155,7 +153,6 @@ class TaskController extends Controller
                 )
             );
         }
-
 
         /*
     |--------------------------------------------------------------------------
@@ -174,7 +171,6 @@ class TaskController extends Controller
             );
         }
 
-
         /*
     |--------------------------------------------------------------------------
     | Deadline End
@@ -192,7 +188,6 @@ class TaskController extends Controller
             );
         }
 
-
         /*
     |--------------------------------------------------------------------------
     | Order
@@ -202,7 +197,6 @@ class TaskController extends Controller
         $query
             ->orderBy('deadline')
             ->orderByDesc('created_at');
-
 
         /*
     |--------------------------------------------------------------------------
@@ -216,7 +210,7 @@ class TaskController extends Controller
         );
 
         if (
-            !in_array(
+            ! in_array(
                 $perPage,
                 [10, 25, 50, 100],
                 true
@@ -225,11 +219,9 @@ class TaskController extends Controller
             $perPage = 10;
         }
 
-
         $tasks = $query
             ->paginate($perPage)
             ->withQueryString();
-
 
         /*
     |--------------------------------------------------------------------------
@@ -241,7 +233,6 @@ class TaskController extends Controller
 
             'total' => (clone $baseQuery)
                 ->count(),
-
 
             'not_started' => (clone $baseQuery)
                 ->whereHas(
@@ -256,7 +247,6 @@ class TaskController extends Controller
                 )
                 ->count(),
 
-
             'in_progress' => (clone $baseQuery)
                 ->whereHas(
                     'status',
@@ -270,7 +260,6 @@ class TaskController extends Controller
                 )
                 ->count(),
 
-
             'completed' => (clone $baseQuery)
                 ->whereHas(
                     'status',
@@ -283,7 +272,6 @@ class TaskController extends Controller
                     }
                 )
                 ->count(),
-
 
             'overdue' => (clone $baseQuery)
                 ->whereDate(
@@ -305,7 +293,6 @@ class TaskController extends Controller
                 ->count(),
         ];
 
-
         /*
     |--------------------------------------------------------------------------
     | Employee Filter
@@ -317,7 +304,6 @@ class TaskController extends Controller
                 'status',
                 'active'
             );
-
 
         /*
     | Manager / Supervisor hanya melihat employee department sendiri.
@@ -331,7 +317,6 @@ class TaskController extends Controller
             );
         }
 
-
         /*
     | Staff hanya dirinya.
     */
@@ -344,11 +329,9 @@ class TaskController extends Controller
             );
         }
 
-
         $employees = $employeesQuery
             ->orderBy('name')
             ->get();
-
 
         /*
     |--------------------------------------------------------------------------
@@ -362,7 +345,6 @@ class TaskController extends Controller
             ->orderBy('name')
             ->get();
 
-
         /*
     |--------------------------------------------------------------------------
     | Priority
@@ -375,7 +357,6 @@ class TaskController extends Controller
             ->orderBy('name')
             ->get();
 
-
         return view(
             'tasks.index',
             compact(
@@ -386,6 +367,44 @@ class TaskController extends Controller
                 'priorities'
             )
         );
+    }
+
+    public function export(Request $request, string $format)
+    {
+        $this->authorize('viewAny', Task::class);
+
+        $query = Task::query()->visibleTo(Auth::user())->with(['pic.department', 'status', 'priority']);
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(fn ($query) => $query->where('task_code', 'like', "%{$search}%")
+                ->orWhere('title', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%")
+                ->orWhereHas('pic', fn ($query) => $query->where('name', 'like', "%{$search}%")->orWhere('employee_code', 'like', "%{$search}%")));
+        }
+
+        foreach (['pic_id', 'task_status_id', 'task_priority_id'] as $filter) {
+            if ($request->filled($filter)) {
+                $query->where($filter, $request->input($filter));
+            }
+        }
+
+        if ($request->filled('deadline_start')) {
+            $query->whereDate('deadline', '>=', $request->input('deadline_start'));
+        }
+
+        if ($request->filled('deadline_end')) {
+            $query->whereDate('deadline', '<=', $request->input('deadline_end'));
+        }
+
+        $tasks = $query->orderBy('deadline')->orderByDesc('created_at')->get();
+        $filename = 'laporan-tugas-'.now()->format('Y-m-d');
+
+        return match ($format) {
+            'xlsx' => Excel::download(new TaskExport($tasks), "{$filename}.xlsx"),
+            'csv' => Excel::download(new TaskExport($tasks), "{$filename}.csv", ExcelWriter::CSV),
+            'pdf' => Pdf::loadView('tasks.report-pdf', compact('tasks'))->setPaper('a4', 'landscape')->download("{$filename}.pdf"),
+        };
     }
 
     /**
@@ -453,9 +472,7 @@ class TaskController extends Controller
             Task::class
         );
 
-
         $user = Auth::user();
-
 
         /*
     |--------------------------------------------------------------------------
@@ -473,7 +490,6 @@ class TaskController extends Controller
                 'active'
             );
 
-
         /*
     | Manager / Supervisor:
     | PIC wajib berasal dari department sendiri.
@@ -487,20 +503,16 @@ class TaskController extends Controller
             );
         }
 
-
         $pic = $picQuery->first();
 
-
-        if (!$pic) {
+        if (! $pic) {
 
             return back()
                 ->withInput()
                 ->withErrors([
-                    'pic_id' =>
-                    'PIC tidak valid atau berada di luar departemen Anda.',
+                    'pic_id' => 'PIC tidak valid atau berada di luar departemen Anda.',
                 ]);
         }
-
 
         /*
     |--------------------------------------------------------------------------
@@ -525,37 +537,26 @@ class TaskController extends Controller
                     )
                     ->firstOrFail();
 
-
                 $task = Task::create([
 
-                    'task_code' =>
-                    $this->nextTaskCode(),
+                    'task_code' => $this->nextTaskCode(),
 
-                    'title' =>
-                    $request->title,
+                    'title' => $request->title,
 
-                    'description' =>
-                    $request->description,
+                    'description' => $request->description,
 
-                    'pic_id' =>
-                    $pic->id,
+                    'pic_id' => $pic->id,
 
-                    'deadline' =>
-                    $request->deadline,
+                    'deadline' => $request->deadline,
 
-                    'task_status_id' =>
-                    $defaultStatus->id,
+                    'task_status_id' => $defaultStatus->id,
 
-                    'task_priority_id' =>
-                    $request->task_priority_id,
+                    'task_priority_id' => $request->task_priority_id,
 
-                    'created_by' =>
-                    Auth::id(),
+                    'created_by' => Auth::id(),
 
-                    'completed_at' =>
-                    null,
+                    'completed_at' => null,
                 ]);
-
 
                 /*
             |--------------------------------------------------------------------------
@@ -565,26 +566,20 @@ class TaskController extends Controller
 
                 TaskStatusHistory::create([
 
-                    'task_id' =>
-                    $task->id,
+                    'task_id' => $task->id,
 
-                    'task_status_id' =>
-                    $defaultStatus->id,
+                    'task_status_id' => $defaultStatus->id,
 
-                    'note' =>
-                    'Tugas dibuat dengan status awal '
-                        . $defaultStatus->name
-                        . '.',
+                    'note' => 'Tugas dibuat dengan status awal '
+                        .$defaultStatus->name
+                        .'.',
 
-                    'changed_by' =>
-                    Auth::id(),
+                    'changed_by' => Auth::id(),
                 ]);
-
 
                 return $task;
             }
         );
-
 
         return redirect()
             ->route(
@@ -612,7 +607,6 @@ class TaskController extends Controller
             'statusHistories.changedBy.employee',
         ]);
 
-
         /*
     |--------------------------------------------------------------------------
     | Authorization
@@ -624,9 +618,7 @@ class TaskController extends Controller
             $task
         );
 
-
         $user = Auth::user();
-
 
         /*
     |--------------------------------------------------------------------------
@@ -636,7 +628,6 @@ class TaskController extends Controller
 
         $employees = collect();
 
-
         if ($user->canManageTasks()) {
 
             $employeesQuery = Employee::query()
@@ -644,7 +635,6 @@ class TaskController extends Controller
                     'status',
                     'active'
                 );
-
 
             /*
         | Manager / Supervisor:
@@ -659,12 +649,10 @@ class TaskController extends Controller
                 );
             }
 
-
             $employees = $employeesQuery
                 ->orderBy('name')
                 ->get();
         }
-
 
         /*
     |--------------------------------------------------------------------------
@@ -680,7 +668,6 @@ class TaskController extends Controller
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
-
 
         return view(
             'tasks.show',
@@ -705,15 +692,12 @@ class TaskController extends Controller
             'creator.employee',
         ]);
 
-
         $this->authorize(
             'update',
             $task
         );
 
-
         $user = Auth::user();
-
 
         /*
     |--------------------------------------------------------------------------
@@ -727,7 +711,6 @@ class TaskController extends Controller
                 'active'
             );
 
-
         if ($user->isManagement()) {
 
             $employeesQuery->where(
@@ -736,11 +719,9 @@ class TaskController extends Controller
             );
         }
 
-
         $employees = $employeesQuery
             ->orderBy('name')
             ->get();
-
 
         /*
     |--------------------------------------------------------------------------
@@ -756,7 +737,6 @@ class TaskController extends Controller
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
-
 
         return view(
             'tasks.edit',
@@ -777,15 +757,12 @@ class TaskController extends Controller
     ) {
         $task->load('pic');
 
-
         $this->authorize(
             'update',
             $task
         );
 
-
         $user = Auth::user();
-
 
         /*
     |--------------------------------------------------------------------------
@@ -803,7 +780,6 @@ class TaskController extends Controller
                 'active'
             );
 
-
         if ($user->isManagement()) {
 
             $picQuery->where(
@@ -812,20 +788,16 @@ class TaskController extends Controller
             );
         }
 
-
         $pic = $picQuery->first();
 
-
-        if (!$pic) {
+        if (! $pic) {
 
             return back()
                 ->withInput()
                 ->withErrors([
-                    'pic_id' =>
-                    'PIC tidak valid atau berada di luar departemen Anda.',
+                    'pic_id' => 'PIC tidak valid atau berada di luar departemen Anda.',
                 ]);
         }
-
 
         DB::transaction(
             function () use (
@@ -836,24 +808,18 @@ class TaskController extends Controller
 
                 $task->update([
 
-                    'title' =>
-                    $request->title,
+                    'title' => $request->title,
 
-                    'description' =>
-                    $request->description,
+                    'description' => $request->description,
 
-                    'pic_id' =>
-                    $pic->id,
+                    'pic_id' => $pic->id,
 
-                    'deadline' =>
-                    $request->deadline,
+                    'deadline' => $request->deadline,
 
-                    'task_priority_id' =>
-                    $request->task_priority_id,
+                    'task_priority_id' => $request->task_priority_id,
                 ]);
             }
         );
-
 
         return redirect()
             ->route(
@@ -875,16 +841,13 @@ class TaskController extends Controller
             'pic.department'
         );
 
-
         $this->authorize(
             'delete',
             $task
         );
 
-
         $taskCode =
             $task->task_code;
-
 
         DB::transaction(
             function () use ($task) {
@@ -892,7 +855,6 @@ class TaskController extends Controller
                 $task->delete();
             }
         );
-
 
         return redirect()
             ->route('tasks.index')
@@ -922,11 +884,10 @@ class TaskController extends Controller
 
                 return null;
             })
-            ->filter(fn($number) => $number !== null)
+            ->filter(fn ($number) => $number !== null)
             ->max() ?? 0;
 
-
-        return 'TSK-' . str_pad(
+        return 'TSK-'.str_pad(
             (string) ($highestCode + 1),
             3,
             '0',
@@ -942,12 +903,10 @@ class TaskController extends Controller
             'pic.department'
         );
 
-
         $this->authorize(
             'assignPic',
             $task
         );
-
 
         $request->validate(
             [
@@ -958,17 +917,13 @@ class TaskController extends Controller
                 ],
             ],
             [
-                'pic_id.required' =>
-                'PIC wajib dipilih.',
+                'pic_id.required' => 'PIC wajib dipilih.',
 
-                'pic_id.exists' =>
-                'PIC tidak ditemukan.',
+                'pic_id.exists' => 'PIC tidak ditemukan.',
             ]
         );
 
-
         $user = Auth::user();
-
 
         /*
     |--------------------------------------------------------------------------
@@ -986,7 +941,6 @@ class TaskController extends Controller
                 'active'
             );
 
-
         /*
     | Manager / Supervisor:
     | tidak boleh assign ke department lain.
@@ -1000,18 +954,14 @@ class TaskController extends Controller
             );
         }
 
-
         $employee = $employeeQuery->first();
 
-
-        if (!$employee) {
+        if (! $employee) {
 
             return back()->withErrors([
-                'pic_id' =>
-                'PIC tidak valid atau berada di luar departemen Anda.',
+                'pic_id' => 'PIC tidak valid atau berada di luar departemen Anda.',
             ]);
         }
-
 
         /*
     |--------------------------------------------------------------------------
@@ -1031,7 +981,6 @@ class TaskController extends Controller
             );
         }
 
-
         /*
     |--------------------------------------------------------------------------
     | Update
@@ -1039,10 +988,8 @@ class TaskController extends Controller
     */
 
         $task->update([
-            'pic_id' =>
-            $employee->id,
+            'pic_id' => $employee->id,
         ]);
-
 
         return redirect()
             ->route(
@@ -1063,12 +1010,10 @@ class TaskController extends Controller
             'pic.department'
         );
 
-
         $this->authorize(
             'updateStatus',
             $task
         );
-
 
         $request->validate(
             [
@@ -1085,17 +1030,13 @@ class TaskController extends Controller
                 ],
             ],
             [
-                'task_status_id.required' =>
-                'Status wajib dipilih.',
+                'task_status_id.required' => 'Status wajib dipilih.',
 
-                'task_status_id.exists' =>
-                'Status tidak ditemukan.',
+                'task_status_id.exists' => 'Status tidak ditemukan.',
 
-                'note.max' =>
-                'Catatan maksimal 1000 karakter.',
+                'note.max' => 'Catatan maksimal 1000 karakter.',
             ]
         );
-
 
         /*
     |--------------------------------------------------------------------------
@@ -1114,16 +1055,13 @@ class TaskController extends Controller
             )
             ->first();
 
-
-        if (!$newStatus) {
+        if (! $newStatus) {
 
             return back()
                 ->withErrors([
-                    'task_status_id' =>
-                    'Status tidak aktif atau tidak tersedia.',
+                    'task_status_id' => 'Status tidak aktif atau tidak tersedia.',
                 ]);
         }
-
 
         /*
     |--------------------------------------------------------------------------
@@ -1143,7 +1081,6 @@ class TaskController extends Controller
             );
         }
 
-
         DB::transaction(
             function () use (
                 $request,
@@ -1159,15 +1096,12 @@ class TaskController extends Controller
 
                 $task->update([
 
-                    'task_status_id' =>
-                    $newStatus->id,
+                    'task_status_id' => $newStatus->id,
 
-                    'completed_at' =>
-                    $newStatus->code === 'completed'
+                    'completed_at' => $newStatus->code === 'completed'
                         ? now()
                         : null,
                 ]);
-
 
                 /*
             |--------------------------------------------------------------------------
@@ -1177,23 +1111,18 @@ class TaskController extends Controller
 
                 TaskStatusHistory::create([
 
-                    'task_id' =>
-                    $task->id,
+                    'task_id' => $task->id,
 
-                    'task_status_id' =>
-                    $newStatus->id,
+                    'task_status_id' => $newStatus->id,
 
-                    'note' =>
-                    $request->filled('note')
+                    'note' => $request->filled('note')
                         ? trim($request->note)
                         : null,
 
-                    'changed_by' =>
-                    Auth::id(),
+                    'changed_by' => Auth::id(),
                 ]);
             }
         );
-
 
         return redirect()
             ->route(

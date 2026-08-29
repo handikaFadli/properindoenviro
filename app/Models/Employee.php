@@ -33,7 +33,10 @@ class Employee extends Model
 
     public function user()
     {
-        return $this->hasOne(User::class);
+        return $this->hasOne(
+            User::class,
+            'employee_id'
+        );
     }
 
     public function tasks()
@@ -44,5 +47,14 @@ class Employee extends Model
     public function activityLogs()
     {
         return $this->morphMany(ActivityLog::class, 'subject');
+    }
+
+
+    public function userWithTrashed()
+    {
+        return $this->hasOne(
+            User::class,
+            'employee_id'
+        )->withTrashed();
     }
 }

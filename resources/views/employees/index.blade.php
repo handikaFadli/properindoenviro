@@ -76,7 +76,7 @@
             id="departmentFilterButton"
             data-dropdown-toggle="departmentFilterDropdown"
             type="button"
-            class="flex items-center justify-between min-w-48 h-11 px-4
+            class="flex items-center justify-between min-w-41 h-11 px-4
                    bg-white border border-gray-200 rounded-xl shadow-sm
                    text-sm font-medium text-gray-700
                    hover:border-primary-400 hover:shadow-md
@@ -107,7 +107,7 @@
 
 
         <div id="departmentFilterDropdown"
-             class="hidden z-20 w-56 mt-2 bg-white rounded-xl
+             class="hidden z-20 w-52 mt-2 bg-white rounded-xl
                     shadow-xl border border-gray-100 overflow-hidden">
 
             {{-- Semua Departemen --}}
@@ -190,7 +190,7 @@
             id="positionFilterButton"
             data-dropdown-toggle="positionFilterDropdown"
             type="button"
-            class="flex items-center justify-between min-w-48 h-11 px-4
+            class="flex items-center justify-between min-w-51 h-11 px-4
                    bg-white border border-gray-200 rounded-xl shadow-sm
                    text-sm font-medium text-gray-700
                    hover:border-primary-400 hover:shadow-md
@@ -221,7 +221,7 @@
 
 
         <div id="positionFilterDropdown"
-             class="hidden z-20 w-56 mt-2 bg-white rounded-xl
+             class="hidden z-20 w-61 mt-2 bg-white rounded-xl
                     shadow-xl border border-gray-100 overflow-hidden">
 
             {{-- Semua Posisi --}}
@@ -403,21 +403,21 @@
         <button
             type="button"
             onclick="resetFilters()"
-            class="inline-flex items-center gap-2 h-11 px-4
+            class="inline-flex items-center gap-2 h-11 px-2
                    text-sm font-medium text-red-600
                    bg-red-50 border border-red-100 rounded-xl
                    hover:bg-red-100
                    transition cursor-pointer">
 
             <svg class="w-4 h-4"
-                 fill="none"
-                 stroke="currentColor"
-                 viewBox="0 0 24 24">
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
 
                 <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M6 18L18 6M6 6l12 12"/>
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                        d="M4 4v6h6M20 20v-6h-6M5.1 15A8 8 0 0 0 18 17m.9-8A8 8 0 0 0 6 7"/>
 
             </svg>
         </button>

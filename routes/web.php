@@ -9,6 +9,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskPriorityController;
 use App\Http\Controllers\TaskStatusController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -21,7 +22,7 @@ Route::middleware('auth')->group(function () {
         '/',
         [
             DashboardController::class,
-            'index'
+            'index',
         ]
     )->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -34,14 +35,28 @@ Route::middleware('auth')->group(function () {
         ->whereIn('format', ['xlsx', 'csv', 'pdf'])
         ->name('employees.export');
     Route::resource('employees', EmployeeController::class);
+    Route::get('tasks/export/{format}', [TaskController::class, 'export'])
+        ->whereIn('format', ['xlsx', 'csv', 'pdf'])
+        ->name('tasks.export');
     Route::resource('tasks', TaskController::class);
     Route::patch('/tasks/{task}/assign-pic', [
         TaskController::class,
-        'assignPic'
+        'assignPic',
     ])->name('tasks.assign-pic');
 
     Route::patch('/tasks/{task}/status', [
         TaskController::class,
-        'updateStatus'
+        'updateStatus',
     ])->name('tasks.update-status');
+    Route::resource(
+        'users',
+        UserController::class
+    );
+    Route::patch(
+        '/users/{user}/reset-password',
+        [
+            UserController::class,
+            'resetPassword',
+        ]
+    )->name('users.reset-password');
 });

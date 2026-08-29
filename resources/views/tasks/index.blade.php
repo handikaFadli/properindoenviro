@@ -44,7 +44,19 @@
 
 
             @if($canManageTask)
-                <a href="{{ route('tasks.create') }}"
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <button id="taskExportDropdownButton" data-dropdown-toggle="taskExportDropdown" type="button" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            Export
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div id="taskExportDropdown" class="hidden z-20 w-25 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+                            <a href="{{ route('tasks.export', array_merge(request()->query(), ['format' => 'xlsx'])) }}" data-download class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600">Excel</a>
+                            <a href="{{ route('tasks.export', array_merge(request()->query(), ['format' => 'csv'])) }}" data-download class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600">CSV</a>
+                            <a href="{{ route('tasks.export', array_merge(request()->query(), ['format' => 'pdf'])) }}" data-download class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600">PDF</a>
+                        </div>
+                    </div>
+                    <a href="{{ route('tasks.create') }}"
                 class="inline-flex
                         items-center
                         justify-center
@@ -75,6 +87,7 @@
                     Buat Tugas
 
                 </a>
+                </div>
             @endif
         </div>
 
@@ -481,8 +494,6 @@
               method="GET"
               class="p-5">
 
-
-            {{-- Pertahankan per page --}}
             <input type="hidden"
                    name="per_page"
                    value="{{ request('per_page', 10) }}">
@@ -607,7 +618,8 @@
                                 focus:outline-none
                                 focus:border-primary-500
                                 focus:ring-2
-                                focus:ring-primary-100"
+                                focus:ring-primary-100
+                                cursor-pointer"
                         >
 
                             <option value="">
@@ -676,7 +688,8 @@
                             focus:outline-none
                             focus:border-primary-500
                             focus:ring-2
-                            focus:ring-primary-100"
+                            focus:ring-primary-100
+                            cursor-pointer"
                     >
 
                         <option value="">
@@ -738,7 +751,8 @@
                             focus:outline-none
                             focus:border-primary-500
                             focus:ring-2
-                            focus:ring-primary-100"
+                            focus:ring-primary-100
+                            cursor-pointer"
                     >
 
                         <option value="">
