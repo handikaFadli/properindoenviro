@@ -4,7 +4,6 @@ import "tom-select/dist/css/tom-select.css";
 import "./bootstrap";
 import "./charts";
 import "./dark-mode";
-import "./sidebar";
 import "./notifications";
 
 window.showLoading = function () {
